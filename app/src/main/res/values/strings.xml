@@ -1,0 +1,18 @@
+<resources>
+    <string name="app_name">Lớp học lập trình nhí</string>
+    <string name="home_title">LỚP HỌC LẬP TRÌNH NHÍ</string>
+    <string name="home_description">Quản lý học viên, khóa học và ghi danh</string>
+    <string name="students">Học viên</string>
+    <string name="courses">Khóa học</string>
+    <string name="enroll_student">Ghi danh học viên vào khóa</string>
+    <string name="choose_course_to_enroll">Chọn khóa học để ghi danh</string>
+    <string name="reports">Báo cáo và truy vấn</string>
+    <string name="add_new">+ Thêm mới</string>
+    <string name="list_instruction">Chạm để sửa • Nhấn giữ để xóa</string>
+    <string name="empty_data">Chưa có dữ liệu</string>
+    <string name="report_by_course_title">Liệt kê học viên theo khóa học</string>
+    <string name="view_students_by_course">Xem học viên theo khóa</string>
+    <string name="python_basic_age_report">Học viên 10–12 tuổi • Python cơ bản</string>
+    <string name="select_a_report">Chọn một truy vấn</string>
+    <string name="student_result_count">Kết quả: %1$d học viên</string>
+</resources>
