@@ -3,6 +3,7 @@ package com.example.quanlynhansu.presentation.enrollment;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
@@ -12,82 +13,124 @@ import com.example.quanlynhansu.domain.model.Course;
 import com.example.quanlynhansu.domain.model.CourseSummary;
 import com.example.quanlynhansu.domain.model.Student;
 import com.example.quanlynhansu.domain.usecase.EnrollmentCandidates;
-import com.example.quanlynhansu.domain.usecase.EnrollmentUseCase;
-import com.example.quanlynhansu.presentation.common.BaseListActivity;
+import com.example.quanlynhansu.presentation.common.BaseMvvmListActivity;
+import com.example.quanlynhansu.presentation.common.ListRow;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public final class EnrollmentActivity extends BaseListActivity<CourseSummary> {
-    private EnrollmentUseCase enrollmentUseCase;
+public final class EnrollmentActivity extends BaseMvvmListActivity<CourseSummary, EnrollmentViewModel> {
+    private Button addButton;
+    private AlertDialog activeDialog;
+    private Course currentSelectedCourse;
+
+    @Override
+    protected Class<EnrollmentViewModel> getViewModelClass() {
+        return EnrollmentViewModel.class;
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        enrollmentUseCase = new EnrollmentUseCase(repository);
         setContentView(R.layout.activity_entity_list);
         setTitle("Ghi danh học viên");
+        ((TextView) findViewById(R.id.txtScreenTitle)).setText(
+                R.string.enrollment_management_title
+        );
+        ((TextView) findViewById(R.id.txtInstruction)).setText(
+                R.string.enrollment_list_instruction
+        );
 
         ListView listView = findViewById(R.id.list);
         setupList(listView);
-        listView.setOnItemClickListener((parent, view, position, id) ->
-                showEnrolledStudents(items.get(position).getCourse()));
+        listView.setOnItemClickListener((parent, view, position, id) -> {
+            currentSelectedCourse = items.get(position).getCourse();
+            viewModel.fetchEnrolledStudents(currentSelectedCourse.getId());
+        });
 
-        Button addButton = findViewById(R.id.btnAdd);
+        addButton = findViewById(R.id.btnAdd);
         addButton.setText(R.string.choose_course_to_enroll);
         addButton.setOnClickListener(view -> chooseCourse());
 
-        loadCourses();
+        setupObservers();
+
+        viewModel.loadInitialData();
     }
 
-    private void loadCourses() {
-        executeDatabase(repository::getCourseSummaries, summaries -> {
-            replaceItems(summaries);
-            findViewById(R.id.empty).setVisibility(
-                    items.isEmpty() ? android.view.View.VISIBLE : android.view.View.GONE
-            );
+    private void setupObservers() {
+        viewModel.getCourseChoices().observe(this, courses -> {
+            if (courses != null) {
+                addButton.setEnabled(true);
+                displayCourseChoices(courses);
+            }
+        });
+
+        viewModel.getStudentCandidates().observe(this, candidates -> {
+            if (candidates != null && currentSelectedCourse != null) {
+                displayStudentChoices(currentSelectedCourse, candidates);
+            }
+        });
+
+        viewModel.getEnrolledStudents().observe(this, students -> {
+            if (students != null && currentSelectedCourse != null) {
+                displayEnrolledStudents(currentSelectedCourse, students);
+            }
+        });
+
+        viewModel.getEnrollEvent().observe(this, event -> {
+            Boolean success = event == null ? null : event.consume();
+            if (success == null) {
+                return;
+            }
+            if (activeDialog != null && activeDialog.isShowing()) {
+                if (success) {
+                    activeDialog.dismiss();
+                    activeDialog = null;
+                    Toast.makeText(this, "Ghi danh thành công", Toast.LENGTH_SHORT).show();
+                } else {
+                    activeDialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(true);
+                    Toast.makeText(this, "Không thể ghi danh. Dữ liệu chưa được thay đổi.", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+
+        viewModel.getUnenrollEvent().observe(this, event -> {
+            Boolean success = event == null ? null : event.consume();
+            if (success == null) {
+                return;
+            }
+            if (!success) {
+                Toast.makeText(this, "Ghi danh không còn tồn tại", Toast.LENGTH_SHORT).show();
+            } else {
+                if (activeDialog != null && activeDialog.isShowing()) {
+                    activeDialog.dismiss();
+                    activeDialog = null;
+                }
+                if (currentSelectedCourse != null) {
+                    viewModel.fetchEnrolledStudents(currentSelectedCourse.getId());
+                }
+            }
         });
     }
 
     @Override
-    protected String render(CourseSummary summary) {
+    protected ListRow render(CourseSummary summary) {
         Course course = summary.getCourse();
-        return course.getCode() + " • " + course.getName() + "\n"
-                + course.getLanguage() + " • " + course.getLevel() + "  |  "
-                + summary.getStudentCount() + " học viên\nChạm để xem danh sách lớp";
-    }
-
-    private void showEnrolledStudents(Course course) {
-        executeDatabase(
-                () -> repository.getStudentsByCourse(course.getId()),
-                students -> displayEnrolledStudents(course, students)
+        return new ListRow(
+                course.getName(),
+                course.getCode() + " • " + course.getLanguage() + " • " + course.getLevel(),
+                summary.getStudentCount() + " học viên • Chạm để xem danh sách"
         );
     }
 
-    private void displayEnrolledStudents(Course course, List<Student> students) {
-        if (students.isEmpty()) {
-            new AlertDialog.Builder(this)
-                    .setTitle(course.getName())
-                    .setMessage("Khóa học này chưa có học viên.")
-                    .setNegativeButton("Đóng", null)
-                    .setPositiveButton("Gán học viên", (dialog, which) -> chooseStudents(course))
-                    .show();
-            return;
-        }
-
-        String[] labels = studentLabels(students, true);
-        new AlertDialog.Builder(this)
-                .setTitle(course.getName() + " • " + students.size()
-                        + " học viên\nChạm học viên để hủy ghi danh")
-                .setItems(labels, (dialog, position) ->
-                        confirmUnenroll(course, students.get(position)))
-                .setNegativeButton("Đóng", null)
-                .setPositiveButton("Gán thêm", (dialog, which) -> chooseStudents(course))
-                .show();
+    @Override
+    protected long stableId(CourseSummary summary) {
+        return summary.getCourse().getId();
     }
 
     private void chooseCourse() {
-        executeDatabase(repository::getCourses, this::displayCourseChoices);
+        addButton.setEnabled(false);
+        viewModel.fetchCourseChoices();
     }
 
     private void displayCourseChoices(List<Course> courses) {
@@ -102,56 +145,47 @@ public final class EnrollmentActivity extends BaseListActivity<CourseSummary> {
             labels[i] = course.getCode() + " • " + course.getName();
         }
 
-        new AlertDialog.Builder(this)
+        if (activeDialog != null && activeDialog.isShowing()) {
+            activeDialog.dismiss();
+        }
+
+        activeDialog = new AlertDialog.Builder(this)
                 .setTitle("Bước 1/2 • Chọn khóa học")
-                .setItems(labels, (dialog, position) -> chooseStudents(courses.get(position)))
+                .setItems(labels, (dialog, position) -> {
+                    currentSelectedCourse = courses.get(position);
+                    viewModel.fetchStudentCandidates(currentSelectedCourse.getId());
+                })
                 .setNegativeButton("Hủy", null)
                 .show();
     }
 
-    private void chooseStudents(Course course) {
-        executeDatabase(
-                () -> enrollmentUseCase.getCandidates(course.getId()),
-                candidates -> displayStudentChoices(course, candidates)
-        );
-    }
+    private void displayStudentChoices(Course course, EnrollmentCandidates candidates) {
+        if (activeDialog != null && activeDialog.isShowing()) {
+            activeDialog.dismiss();
+        }
 
-    private void displayStudentChoices(
-            Course course,
-            EnrollmentCandidates candidates
-    ) {
         switch (candidates.getStatus()) {
             case NO_STUDENTS:
-                showNoStudentsMessage();
+                Toast.makeText(this, "Chưa có học viên để ghi danh", Toast.LENGTH_SHORT).show();
                 return;
             case ALL_ENROLLED:
-                showAllStudentsEnrolledMessage(course);
+                activeDialog = new AlertDialog.Builder(this)
+                        .setTitle("Không còn học viên")
+                        .setMessage("Tất cả học viên đã được gán vào khóa “" + course.getName() + "”.")
+                        .setNegativeButton("Chọn khóa khác", (dialog, which) -> chooseCourse())
+                        .setPositiveButton("Đóng", null)
+                        .show();
                 return;
             case AVAILABLE:
                 showStudentSelectionDialog(course, candidates.getStudents());
                 return;
-            default:
-                throw new IllegalStateException("Unsupported enrollment candidate status");
         }
     }
 
-    private void showNoStudentsMessage() {
-        Toast.makeText(this, "Chưa có học viên để ghi danh", Toast.LENGTH_SHORT).show();
-    }
-
-    private void showAllStudentsEnrolledMessage(Course course) {
-        new AlertDialog.Builder(this)
-                .setTitle("Không còn học viên")
-                .setMessage("Tất cả học viên đã được gán vào khóa “" + course.getName() + "”.")
-                .setNegativeButton("Chọn khóa khác", (dialog, which) -> chooseCourse())
-                .setPositiveButton("Đóng", null)
-                .show();
-    }
-
     private void showStudentSelectionDialog(Course course, List<Student> availableStudents) {
-        String[] labels = studentLabels(availableStudents, true);
+        String[] labels = studentLabels(availableStudents);
         boolean[] selected = new boolean[availableStudents.size()];
-        AlertDialog dialog = new AlertDialog.Builder(this)
+        activeDialog = new AlertDialog.Builder(this)
                 .setTitle("Bước 2/2 • Chọn học viên\n" + course.getName())
                 .setMultiChoiceItems(labels, selected,
                         (currentDialog, position, checked) -> selected[position] = checked)
@@ -159,19 +193,58 @@ public final class EnrollmentActivity extends BaseListActivity<CourseSummary> {
                 .setPositiveButton("Xác nhận", null)
                 .create();
 
-        dialog.setOnShowListener(ignored -> dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+        activeDialog.setOnShowListener(ignored -> activeDialog.getButton(AlertDialog.BUTTON_POSITIVE)
                 .setOnClickListener(view -> confirmEnrollment(
-                        dialog, course, availableStudents, selected
+                        activeDialog, course, availableStudents, selected
                 )));
-        dialog.show();
+        activeDialog.show();
     }
 
-    private String[] studentLabels(List<Student> students, boolean includeAge) {
+    private void displayEnrolledStudents(Course course, List<Student> students) {
+        if (activeDialog != null && activeDialog.isShowing()) {
+            activeDialog.dismiss();
+        }
+
+        if (students.isEmpty()) {
+            activeDialog = new AlertDialog.Builder(this)
+                    .setTitle(course.getName())
+                    .setMessage("Khóa học này chưa có học viên.")
+                    .setNegativeButton("Đóng", null)
+                    .setPositiveButton("Gán học viên", (dialog, which) -> {
+                        currentSelectedCourse = course;
+                        viewModel.fetchStudentCandidates(course.getId());
+                    })
+                    .show();
+            return;
+        }
+
+        String[] labels = studentLabels(students);
+        boolean[] selected = new boolean[students.size()];
+        activeDialog = new AlertDialog.Builder(this)
+                .setTitle(course.getName() + " • " + students.size()
+                        + " học viên\nChọn nhiều để hủy ghi danh")
+                .setMultiChoiceItems(labels, selected,
+                        (currentDialog, position, checked) -> selected[position] = checked)
+                .setNegativeButton("Đóng", null)
+                .setNeutralButton("Gán thêm", (currentDialog, which) -> {
+                    currentSelectedCourse = course;
+                    viewModel.fetchStudentCandidates(course.getId());
+                })
+                .setPositiveButton("Hủy đã chọn", null)
+                .create();
+        activeDialog.setOnShowListener(ignored -> activeDialog.getButton(AlertDialog.BUTTON_POSITIVE)
+                .setOnClickListener(view ->
+                        confirmUnenrollSelected(course, students, selected)));
+        activeDialog.show();
+    }
+
+    private String[] studentLabels(List<Student> students) {
         String[] labels = new String[students.size()];
         for (int i = 0; i < students.size(); i++) {
             Student student = students.get(i);
             labels[i] = student.getCode() + " • " + student.getName()
-                    + (includeAge ? " • " + student.getAge() + " tuổi" : "");
+                    + "\n" + student.getAge() + " tuổi • Scratch: "
+                    + student.getScratchLevel();
         }
         return labels;
     }
@@ -179,30 +252,13 @@ public final class EnrollmentActivity extends BaseListActivity<CourseSummary> {
     private void confirmEnrollment(AlertDialog dialog, Course course,
                                    List<Student> students, boolean[] selected) {
         List<Long> selectedStudentIds = getSelectedStudentIds(students, selected);
-        final int selectedCount = selectedStudentIds.size();
-        if (selectedCount == 0) {
+        if (selectedStudentIds.isEmpty()) {
             Toast.makeText(this, "Hãy chọn ít nhất một học viên", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        executeDatabase(
-                () -> enrollmentUseCase.enroll(course.getId(), selectedStudentIds),
-                enrolled -> {
-                    if (!enrolled) {
-                        Toast.makeText(
-                                this,
-                                "Không thể ghi danh. Dữ liệu chưa được thay đổi.",
-                                Toast.LENGTH_SHORT
-                        ).show();
-                        return;
-                    }
-
-                    dialog.dismiss();
-                    loadCourses();
-                    Toast.makeText(this, "Đã gán " + selectedCount + " học viên vào “"
-                            + course.getName() + "”", Toast.LENGTH_SHORT).show();
-                }
-        );
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(false);
+        viewModel.enrollStudents(course.getId(), selectedStudentIds);
     }
 
     private List<Long> getSelectedStudentIds(List<Student> students, boolean[] selected) {
@@ -215,29 +271,25 @@ public final class EnrollmentActivity extends BaseListActivity<CourseSummary> {
         return selectedStudentIds;
     }
 
-    private void confirmUnenroll(Course course, Student student) {
+    private void confirmUnenrollSelected(
+            Course course,
+            List<Student> students,
+            boolean[] selected
+    ) {
+        List<Long> selectedStudentIds = getSelectedStudentIds(students, selected);
+        if (selectedStudentIds.isEmpty()) {
+            Toast.makeText(this, "Hãy chọn ít nhất một học viên", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         new AlertDialog.Builder(this)
-                .setTitle("Hủy ghi danh")
-                .setMessage("Hủy " + student.getName() + " khỏi " + course.getName() + "?")
+                .setTitle("Hủy nhiều ghi danh")
+                .setMessage("Hủy " + selectedStudentIds.size() + " học viên khỏi "
+                        + course.getName() + "?")
                 .setNegativeButton("Không", null)
                 .setPositiveButton("Hủy ghi danh", (dialog, which) -> {
-                    executeDatabase(
-                            () -> repository.unenroll(student.getId(), course.getId()),
-                            removed -> {
-                                if (!removed) {
-                                    Toast.makeText(
-                                            this,
-                                            "Ghi danh không còn tồn tại",
-                                            Toast.LENGTH_SHORT
-                                    ).show();
-                                    return;
-                                }
-                                loadCourses();
-                                showEnrolledStudents(course);
-                            }
-                    );
+                    viewModel.unenrollStudents(course.getId(), selectedStudentIds);
                 })
                 .show();
     }
-
 }

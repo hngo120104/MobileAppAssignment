@@ -4,18 +4,24 @@ import android.app.Application;
 
 import com.example.quanlynhansu.data.local.ClassroomDatabase;
 import com.example.quanlynhansu.data.repository.SqliteClassroomRepository;
+import com.example.quanlynhansu.di.ClassroomViewModelFactory;
 import com.example.quanlynhansu.domain.repository.ClassroomRepository;
 
+import androidx.lifecycle.ViewModelProvider;
+
 public final class ClassroomApplication extends Application {
-    private ClassroomRepository repository;
+    private ViewModelProvider.Factory viewModelFactory;
 
     @Override
     public void onCreate() {
         super.onCreate();
-        repository = new SqliteClassroomRepository(new ClassroomDatabase(this));
+        ClassroomRepository repository = new SqliteClassroomRepository(
+                new ClassroomDatabase(this)
+        );
+        viewModelFactory = new ClassroomViewModelFactory(repository);
     }
 
-    public ClassroomRepository getRepository() {
-        return repository;
+    public ViewModelProvider.Factory getViewModelFactory() {
+        return viewModelFactory;
     }
 }

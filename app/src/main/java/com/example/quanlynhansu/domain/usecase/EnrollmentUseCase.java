@@ -1,5 +1,7 @@
 package com.example.quanlynhansu.domain.usecase;
 
+import com.example.quanlynhansu.domain.model.Course;
+import com.example.quanlynhansu.domain.model.CourseSummary;
 import com.example.quanlynhansu.domain.model.Student;
 import com.example.quanlynhansu.domain.repository.ClassroomRepository;
 
@@ -29,8 +31,24 @@ public final class EnrollmentUseCase {
         return EnrollmentCandidates.available(availableStudents);
     }
 
+    public List<CourseSummary> getCourseSummaries() {
+        return repository.getCourseSummaries();
+    }
+
+    public List<Course> getCourses() {
+        return repository.getCourses();
+    }
+
+    public List<Student> getEnrolledStudents(long courseId) {
+        return repository.getStudentsByCourse(courseId);
+    }
+
     public boolean enroll(long courseId, List<Long> studentIds) {
         return repository.enrollStudents(studentIds, courseId);
+    }
+
+    public boolean unenroll(long courseId, List<Long> studentIds) {
+        return repository.unenrollStudents(studentIds, courseId);
     }
 
     private Set<Long> getEnrolledIds(long courseId) {

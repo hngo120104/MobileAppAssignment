@@ -5,6 +5,37 @@
     android:orientation="vertical"
     android:padding="12dp">
 
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/txtScreenTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textAppearance="?attr/textAppearanceHeadlineSmall"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/btnSelect"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/select"
+            android:visibility="gone" />
+
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/btnSelectAll"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/select_all"
+        android:visibility="gone" />
+
     <Button
         android:id="@+id/btnAdd"
         android:layout_width="match_parent"
@@ -12,11 +43,20 @@
         android:text="@string/add_new" />
 
     <TextView
+        android:id="@+id/txtInstruction"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center"
         android:padding="6dp"
         android:text="@string/list_instruction" />
+
+    <ProgressBar
+        android:id="@+id/loading"
+        style="?android:attr/progressBarStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_margin="24dp" />
 
     <TextView
         android:id="@+id/empty"
@@ -33,5 +73,12 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:dividerHeight="1dp" />
+
+    <Button
+        android:id="@+id/btnDeleteSelected"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/delete_selected"
+        android:visibility="gone" />
 
 </LinearLayout>

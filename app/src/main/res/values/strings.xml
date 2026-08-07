@@ -9,10 +9,46 @@
     <string name="reports">Báo cáo và truy vấn</string>
     <string name="add_new">+ Thêm mới</string>
     <string name="list_instruction">Chạm để sửa • Nhấn giữ để xóa</string>
+    <string name="student_list_instruction">Chạm để sửa • Có thể chọn nhiều để xóa</string>
+    <string name="course_list_instruction">Chạm để sửa • Có thể chọn nhiều để xóa</string>
+    <string name="enrollment_list_instruction">Chạm một khóa để xem và quản lý học viên</string>
+    <string name="student_management_title">Quản lý học viên</string>
+    <string name="course_management_title">Quản lý khóa học</string>
+    <string name="enrollment_management_title">Ghi danh học viên</string>
+    <string name="edit">Sửa</string>
+    <string name="delete">Xóa</string>
+    <string name="select">Chọn</string>
+    <string name="cancel">Hủy</string>
+    <string name="select_all">Tất cả</string>
+    <string name="delete_selected">Xóa đã chọn</string>
+    <string name="delete_selected_count">Xóa đã chọn (%1$d)</string>
+    <string name="no_report_results">Không có học viên phù hợp</string>
     <string name="empty_data">Chưa có dữ liệu</string>
-    <string name="report_by_course_title">Liệt kê học viên theo khóa học</string>
-    <string name="view_students_by_course">Xem học viên theo khóa</string>
-    <string name="python_basic_age_report">Học viên 10–12 tuổi • Python cơ bản</string>
+    <string name="choose_course">Tìm hoặc chọn khóa học</string>
     <string name="select_a_report">Chọn một truy vấn</string>
-    <string name="student_result_count">Kết quả: %1$d học viên</string>
+    <string name="scratch_level">Trình độ Scratch</string>
+    <string name="programming_language">Ngôn ngữ lập trình</string>
+    <string name="course_level">Cấp độ khóa học</string>
+    <string name="choose_report_type">Chọn loại báo cáo</string>
+    <string name="minimum_age">Tuổi từ</string>
+    <string name="maximum_age">Tuổi đến</string>
+    <string name="start_date_format">Từ ngày yyyy-MM-dd</string>
+    <string name="end_date_format">Đến ngày yyyy-MM-dd</string>
+    <string name="run_report">Xem báo cáo</string>
+    <string name="default_minimum_age" translatable="false">5</string>
+    <string name="default_maximum_age" translatable="false">18</string>
+    <string name="default_report_start_date" translatable="false">2026-06-01</string>
+    <string name="default_report_end_date" translatable="false">2026-08-31</string>
+
+    <string-array name="report_types">
+        <item>Chọn loại báo cáo</item>
+        <item>Học viên theo khóa học</item>
+        <item>Tất cả khóa học và số học viên</item>
+        <item>Học viên chưa ghi danh</item>
+        <item>Học viên theo khoảng tuổi</item>
+        <item>Thống kê theo ngôn ngữ</item>
+        <item>Thống kê theo cấp độ</item>
+        <item>Ghi danh theo khoảng thời gian</item>
+        <item>Học viên 10–12 tuổi học Python cơ bản</item>
+    </string-array>
 </resources>

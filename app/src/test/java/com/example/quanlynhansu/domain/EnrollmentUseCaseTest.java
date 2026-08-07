@@ -4,7 +4,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.example.quanlynhansu.domain.model.Course;
+import com.example.quanlynhansu.domain.model.CourseStatistic;
 import com.example.quanlynhansu.domain.model.CourseSummary;
+import com.example.quanlynhansu.domain.model.Enrollment;
 import com.example.quanlynhansu.domain.model.Student;
 import com.example.quanlynhansu.domain.repository.ClassroomRepository;
 import com.example.quanlynhansu.domain.usecase.EnrollmentCandidates;
@@ -69,6 +71,19 @@ public final class EnrollmentUseCaseTest {
         assertEquals(selectedIds, repository.enrolledStudentIds);
     }
 
+    @Test
+    public void unenroll_delegatesSelectedIdsToRepository() {
+        FakeRepository repository = new FakeRepository(
+                Collections.emptyList(),
+                Collections.emptyList()
+        );
+        List<Long> selectedIds = Arrays.asList(1L, 2L);
+
+        assertTrue(new EnrollmentUseCase(repository).unenroll(20, selectedIds));
+        assertEquals(20, repository.unenrolledCourseId);
+        assertEquals(selectedIds, repository.unenrolledStudentIds);
+    }
+
     private static Student student(long id, String code) {
         return new Student(id, code, "Học viên", 10, "Cơ bản");
     }
@@ -78,6 +93,8 @@ public final class EnrollmentUseCaseTest {
         private final List<Student> enrolledStudents;
         private List<Long> enrolledStudentIds = new ArrayList<>();
         private long enrolledCourseId = -1;
+        private List<Long> unenrolledStudentIds = new ArrayList<>();
+        private long unenrolledCourseId = -1;
 
         private FakeRepository(List<Student> allStudents, List<Student> enrolledStudents) {
             this.allStudents = allStudents;
@@ -87,12 +104,14 @@ public final class EnrollmentUseCaseTest {
         @Override public List<Student> getStudents() { return allStudents; }
         @Override public long saveStudent(Student student) { return 0; }
         @Override public boolean deleteStudent(long studentId) { return false; }
+        @Override public boolean deleteStudents(List<Long> studentIds) { return false; }
         @Override public List<Course> getCourses() { return Collections.emptyList(); }
         @Override public List<CourseSummary> getCourseSummaries() {
             return Collections.emptyList();
         }
         @Override public long saveCourse(Course course) { return 0; }
         @Override public boolean deleteCourse(long courseId) { return false; }
+        @Override public boolean deleteCourses(List<Long> courseIds) { return false; }
         @Override
         public boolean enrollStudents(List<Long> studentIds, long courseId) {
             enrolledStudentIds = studentIds;
@@ -100,11 +119,33 @@ public final class EnrollmentUseCaseTest {
             return true;
         }
 
-        @Override public boolean unenroll(long studentId, long courseId) { return false; }
+        @Override public boolean unenrollStudents(List<Long> studentIds, long courseId) {
+            unenrolledStudentIds = studentIds;
+            unenrolledCourseId = courseId;
+            return true;
+        }
         @Override public List<Student> getStudentsByCourse(long courseId) {
             return enrolledStudents;
         }
         @Override public List<Student> getPythonBasicStudentsAged10To12() {
+            return Collections.emptyList();
+        }
+        @Override public List<Student> getUnenrolledStudents() {
+            return Collections.emptyList();
+        }
+        @Override public List<Student> getStudentsByAgeRange(int minimumAge, int maximumAge) {
+            return Collections.emptyList();
+        }
+        @Override public List<CourseStatistic> getCourseStatisticsByLanguage() {
+            return Collections.emptyList();
+        }
+        @Override public List<CourseStatistic> getCourseStatisticsByLevel() {
+            return Collections.emptyList();
+        }
+        @Override public List<Enrollment> getEnrollmentsByDateRange(
+                String startDate,
+                String endDate
+        ) {
             return Collections.emptyList();
         }
     }

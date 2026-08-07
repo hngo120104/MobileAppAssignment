@@ -16,8 +16,21 @@ Cập nhật ngày 26/07/2026:
 - Đã xử lý phần kích thước pixel của F12: padding tạo trong Java được quy đổi từ dp theo mật độ màn hình. Phần chuỗi/style hard-code vẫn còn.
 - Đã xử lý thêm F05 theo SRP: validation form nằm trong `domain.validation`; lọc học viên khả dụng và batch ghi danh nằm trong `EnrollmentUseCase`; các hàm Activity dài được chia thành bước đọc input, hiển thị lỗi, persist và render dialog.
 - Đã mở rộng F06 bằng unit test thuần Java cho validation và `EnrollmentUseCase`. Contract repository cũng đã bỏ hai method ghi danh đơn lẻ/đọc toàn bộ ghi danh không còn được sử dụng.
+- Đã xử lý phần chính của F11: row có phân cấp title/subtitle/metadata, học viên và khóa học có menu thao tác rõ ràng thay cho long-press, màn hình ghi danh có instruction riêng, và các danh sách có loading/empty state.
+- Đã xử lý thêm F12: row dùng XML + theme text appearance/selectable background thay cho màu/cỡ chữ hard-code trong adapter. Chuỗi Java còn lại vẫn cần tiếp tục chuyển về resource.
+- Đã xử lý phần ID cố định của F14: seed v4 liên kết enrollment bằng mã và dùng `INSERT OR IGNORE`, có thể chạy lại an toàn. Việc giữ dữ liệu demo trong app hiện là chủ đích theo yêu cầu tạo thêm dữ liệu mẫu.
+- Đã hoàn thiện thêm F11: thay menu ba chấm bằng nút Sửa/Xóa trực tiếp, thêm selection mode để xóa hàng loạt bằng transaction, hỗ trợ hủy nhiều ghi danh, và thay Spinner + nút xem báo cáo bằng searchable exposed dropdown tự động query.
 
-Các hạng mục còn lại trong tài liệu vẫn là backlog, đặc biệt state/ViewModel ở F10, result type chi tiết ở F07 và phần test UI/repository còn thiếu của F06.
+Cập nhật ngày 02/08/2026:
+
+- Đã xử lý thêm một phần F10: chế độ chọn và các entity được chọn dùng stable ID, được khôi phục qua `savedInstanceState`; màn hình báo cáo tự chạy lại đúng truy vấn đã chọn sau khi Activity được tái tạo.
+- Đã cải thiện F11/F12: trang chủ cuộn được và xử lý system bar/display cutout; form dialog cuộn được, input một dòng dễ sửa và các Spinner có nhãn/accessibility rõ ràng; hàng nút chọn hàng loạt ít bị chật hơn khi dùng font lớn.
+- Đã bổ sung trạng thái busy cho thao tác lưu, ghi danh và báo cáo để tránh gửi lệnh lặp; thông báo lưu không còn khẳng định sai mọi lỗi đều do trùng mã.
+- Đã chốt chính sách F13: tắt backup và khai báo rule loại trừ toàn bộ dữ liệu cho cả cloud backup lẫn device transfer.
+- Đã chạy lại `testDebugUnitTest`, `connectedDebugAndroidTest`, `lintDebug` và `assembleDebug` thành công trên source hiện tại: 8 unit test và 6 instrumented test pass, lint không có error; APK debug được tạo thành công.
+- Đã QA trực tiếp trên Pixel 10 Pro XL AVD: trang chủ, danh sách học viên, form, truy vấn Python cơ bản và việc khôi phục báo cáo/lựa chọn hàng loạt sau xoay màn hình đều hoạt động đúng.
+
+Các hạng mục còn lại đáng chú ý là state của form/dialog nhiều bước ở F10, result type chi tiết ở F07 và test UI tự động cho toàn bộ luồng CRUD ở F06.
 
 ## 1. Phạm vi và kết luận nhanh
 

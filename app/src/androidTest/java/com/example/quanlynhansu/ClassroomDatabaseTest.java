@@ -14,7 +14,9 @@ import androidx.test.platform.app.InstrumentationRegistry;
 import com.example.quanlynhansu.data.local.ClassroomDatabase;
 import com.example.quanlynhansu.data.repository.SqliteClassroomRepository;
 import com.example.quanlynhansu.domain.model.Course;
+import com.example.quanlynhansu.domain.model.CourseStatistic;
 import com.example.quanlynhansu.domain.model.CourseSummary;
+import com.example.quanlynhansu.domain.model.Enrollment;
 import com.example.quanlynhansu.domain.model.Student;
 import com.example.quanlynhansu.domain.repository.ClassroomRepository;
 
@@ -98,6 +100,105 @@ public final class ClassroomDatabaseTest {
     }
 
     @Test
+    public void reportQueries_filterAndAggregatePersistedData() {
+        long enrolledStudentId = repository.saveStudent(
+                new Student(-1, "HV100", "Học viên đã ghi danh", 10, "Cơ bản")
+        );
+        repository.saveStudent(
+                new Student(-1, "HV101", "Học viên chưa ghi danh", 17, "Chưa học")
+        );
+        long courseId = repository.saveCourse(
+                new Course(
+                        -1,
+                        "KH100",
+                        "Khóa kiểm thử báo cáo",
+                        "Python",
+                        "Cơ bản",
+                        "2026-08-01",
+                        "2026-10-31"
+                )
+        );
+        assertTrue(repository.enrollStudents(List.of(enrolledStudentId), courseId));
+
+        Course savedCourse = repository.getCourses().stream()
+                .filter(course -> "KH100".equals(course.getCode()))
+                .findFirst()
+                .orElseThrow(AssertionError::new);
+        assertEquals("2026-08-01", savedCourse.getStartDate());
+        assertEquals("2026-10-31", savedCourse.getEndDate());
+
+        assertTrue(repository.getUnenrolledStudents().stream()
+                .anyMatch(student -> "HV101".equals(student.getCode())));
+        assertFalse(repository.getUnenrolledStudents().stream()
+                .anyMatch(student -> "HV100".equals(student.getCode())));
+
+        List<Student> studentsAged9To11 = repository.getStudentsByAgeRange(9, 11);
+        assertTrue(studentsAged9To11.stream()
+                .anyMatch(student -> "HV100".equals(student.getCode())));
+        assertFalse(studentsAged9To11.stream()
+                .anyMatch(student -> "HV101".equals(student.getCode())));
+
+        CourseStatistic pythonStatistic = repository.getCourseStatisticsByLanguage().stream()
+                .filter(statistic -> "Python".equals(statistic.getGroupName()))
+                .findFirst()
+                .orElseThrow(AssertionError::new);
+        assertTrue(pythonStatistic.getCourseCount() >= 1);
+        assertTrue(pythonStatistic.getEnrollmentCount() >= 1);
+
+        CourseStatistic basicStatistic = repository.getCourseStatisticsByLevel().stream()
+                .filter(statistic -> "Cơ bản".equals(statistic.getGroupName()))
+                .findFirst()
+                .orElseThrow(AssertionError::new);
+        assertTrue(basicStatistic.getCourseCount() >= 1);
+        assertTrue(basicStatistic.getEnrollmentCount() >= 1);
+
+        List<Enrollment> enrollments = repository.getEnrollmentsByDateRange(
+                "2000-01-01",
+                "2100-01-01"
+        );
+        Enrollment savedEnrollment = enrollments.stream()
+                .filter(enrollment -> "HV100".equals(enrollment.getStudent().getCode()))
+                .findFirst()
+                .orElseThrow(AssertionError::new);
+        assertFalse(savedEnrollment.getEnrolledAt().isEmpty());
+        assertEquals("KH100", savedEnrollment.getCourse().getCode());
+    }
+
+    @Test
+    public void batchDeleteStudents_rollsBackWhenOneStudentDoesNotExist() {
+        long studentId = repository.saveStudent(
+                new Student(-1, "HV100", "Học viên 100", 10, "Cơ bản")
+        );
+
+        assertFalse(repository.deleteStudents(Arrays.asList(studentId, 999999L)));
+
+        boolean studentStillExists = false;
+        for (Student student : repository.getStudents()) {
+            if (student.getId() == studentId) {
+                studentStillExists = true;
+            }
+        }
+        assertTrue(studentStillExists);
+    }
+
+    @Test
+    public void batchUnenroll_rollsBackWhenSelectionContainsDuplicate() {
+        long studentId = repository.saveStudent(
+                new Student(-1, "HV100", "Học viên 100", 10, "Cơ bản")
+        );
+        long courseId = repository.saveCourse(
+                new Course(-1, "KH100", "Khóa kiểm thử", "Python", "Cơ bản")
+        );
+        assertTrue(repository.enrollStudents(List.of(studentId), courseId));
+
+        assertFalse(repository.unenrollStudents(
+                Arrays.asList(studentId, studentId),
+                courseId
+        ));
+        assertEquals(1, repository.getStudentsByCourse(courseId).size());
+    }
+
+    @Test
     public void upgradeFromVersion2_preservesDataAndCreatesCourseIndex() {
         database.close();
         database = null;
@@ -145,6 +246,19 @@ public final class ClassroomDatabaseTest {
         )) {
             assertTrue(indexCursor.moveToFirst());
             assertEquals(1, indexCursor.getInt(0));
+        }
+        try (Cursor courseCursor = upgraded.rawQuery(
+                "SELECT start_date,end_date FROM courses WHERE code='KH001'", null
+        )) {
+            assertTrue(courseCursor.moveToFirst());
+            assertFalse(courseCursor.getString(0).isEmpty());
+            assertFalse(courseCursor.getString(1).isEmpty());
+        }
+        try (Cursor enrollmentCursor = upgraded.rawQuery(
+                "SELECT enrolled_at FROM enrollments LIMIT 1", null
+        )) {
+            assertTrue(enrollmentCursor.moveToFirst());
+            assertFalse(enrollmentCursor.getString(0).isEmpty());
         }
     }
 }
